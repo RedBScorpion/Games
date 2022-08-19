@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8"?>
+<CheatTable CheatEngineTableVersion="26">
+  <CheatEntries>
+    <CheatEntry>
+      <ID>3</ID>
+      <Description>"3x Speed on alt"</Description>
+      <Options moHideChildren="1"/>
+      <LastState Activated="1"/>
+      <VariableType>Auto Assembler Script</VariableType>
+      <AssemblerScript>{$lua}
+[ENABLE]
+-- note hotkey considerd disabled when first key is no longer pressed
+-- see https://msdn.microsoft.com/en-us/library/ms927178.aspx (and defines.lua) for letters eg. 'a' use VK_&lt;uppercase-letter&gt; aka VK_A
+local hotkeyKeys = { VK_MENU }
+local defaultSpeed = 3.0
+local keyCheckInterval = 100
+
+-- Necessary only for pre CE6.7 since they don't provide access to the current memory record
+local id = nil -- save ct and open in text editor and look for &lt;ID&gt;xxx&lt;/ID&gt; above the script
+-- or get the extra memrec info lua extension from the CE forums which shows the id in CE
+
+-- END OF CONFIGURATION
+
+if getCEVersion() &lt; 6.7 and not id then error('Pre-CE 6.7 needs the id hardcoded above!', 2) end
+if syntaxcheck then return end
+-- use memrec.id if it exists since it's guaranteed to be unique (minus CE bugs)
+local memrec = memrec
+if not memrec then
+  memrec = getAddressList().getMemoryRecordByID(id)
+end
+id = memrec.id -- set id for ce 6.7+ where memrec already existed
+
+-- setup global table so multiple scripts don't accidentally use the same variables
+_G[id] = _G[id] or {}
+local gt = _G[id] -- nicer name for global table
+
+-- get memory for adjustable speed
+gt.mem = gt.mem or allocateMemory(4)
+if not gt.mem then error('Failed to allocate memory, make sure you’re attached to the process!', 2) end
+
+-- update the child memory record with allocated memory and default speed from config
+local m = memrec.Child[0]
+m.Address = gt.mem
+m.Value = defaultSpeed
+
+-- create hotkey that will set the speed when the key is pressed
+local hk = createHotkey(function(hotkey)
+  if gt.ps then return end -- runs multiple times while key is pressed, stop that
+  gt.ps = speedhack_getSpeed() -- remember current (previous) speed so we can restore it
+  local sp = m.Value -- get new speed based on child memrec's value
+  speedhack_setSpeed(sp) -- set speed
+  local keys = { hotkey.getKeys() } -- get keys for hotkey, probably the same as hotkeyKeys but more generic
+  -- to show how you'd get them with hotkeys that could be changed, eg. with a nice trainer
+
+  -- create a timer to check for when the keys are not longer pressed (no OnPostHotkey with generic hotkeys)
+  gt.t = createTimer()
+  gt.t.Interval = keyCheckInterval
+  gt.t.OnTimer = function(self)
+    local ps = gt.ps -- get previous speed to restore with it
+    -- check (only) first key, timer might run after ps is set to nil
+    -- which would set speed to 0, so check it too
+    if ps and not isKeyPressed(keys[1]) then
+      self.destroy(); gt.t = nil -- if not pressed we don't need to keep check so destroy timer
+      speedhack_setSpeed(ps) -- restore the speed to the original
+      gt.ps = nil -- set to nil/false value since it's used as a sentinel value to run the hotkey function
+    end
+  end
+end, hotkeyKeys)
+gt.hk = hk -- store the created hotkey in the global table so it can be destroyed in the disable section
+
+[DISABLE]
+if syntaxcheck then return end
+-- destroy the hotkey so that it stops running when the keys are pressed.
+_G[memrec.id].hk.destroy(); _G[memrec.id].hk = nil
+</AssemblerScript>
+      <CheatEntries>
+        <CheatEntry>
+          <ID>4</ID>
+          <Description>"Speed"</Description>
+          <LastState Value="3" RealAddress="1F3B5F60000"/>
+          <VariableType>Float</VariableType>
+          <Address>2146241478656.0</Address>
+        </CheatEntry>
+      </CheatEntries>
+    </CheatEntry>
+  </CheatEntries>
+</CheatTable>

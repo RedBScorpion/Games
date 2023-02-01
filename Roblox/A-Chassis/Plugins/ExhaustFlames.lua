@@ -1,6 +1,9 @@
 --[[ 
 
-> Credits: 
+//How it Works
+ExhaustFlames > ExhaustHandler > FlamesController
+
+//Credits: 
 .made by cc567 
 .modded by RedByMoon
 

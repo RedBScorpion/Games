@@ -1,3 +1,8 @@
+--[[
+-->> This Library was not made by me <<--
+.just did a fork to edit some values because the original one doesn't accept Template modifications trought the notification function()
+]]
+
 _G.JxereasExistingHooks = _G.JxereasExistingHooks or {}
 if not _G.JxereasExistingHooks.GuiDetectionBypass then
     local CoreGui = game.CoreGui
